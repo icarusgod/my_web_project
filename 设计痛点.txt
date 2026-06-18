@@ -1,0 +1,12 @@
+可能只有一个表查询，可能有多个表查询，当多个表查询时，以第一个表查询出结果的item code字段作为索引合并其他表的数据
+sku列没有一个统一的标准，例如1“ID X 1"TK X 6',同样的size，可能还有有1“ID X 1"TK X 6'（NP），1“ID X 1"TK X 6'（DK），甚至1ID X 1TK X 6ft。所以会出现一个item code对应多个size的情况。
+还需要多条件合并查询，多为sku和customer，同时满足才会查询出结果。
+这种情况应该如何设计前后端，先给思路，不写代码
+
+
+
+
+我应该拿到item code 和sku对照表，这个表作为主体，确定查询的sku和item code，公司名称，再根据这几个参数查询其他表
+item code唯一对应size+class+company。尺寸说要改成tk id len要分开。
+roll和tubing要不要分开，由duckdb查询性能够，大概是不需要分，仅作为产品属性显示到查询结果
+那么我可以把这四个筛选条件加入进去，还是做防抖加实时查询，做成excel那种filter。如果选中了item code，直接将其他三个查询出来。

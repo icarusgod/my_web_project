@@ -1,0 +1,175 @@
+
+import React, { useState } from 'react';
+import './App.css';
+
+// 定义后端返回的数据结构
+interface FileResult {
+  filename: string;
+  rows: number;
+  columns: string[];
+  sample: Record<string, any>[];
+}
+
+interface UploadResponse {
+  message: string;
+  details: FileResult[];
+}
+
+const App: React.FC = () => {
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [result, setResult] = useState<UploadResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // 处理文件选择
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setSelectedFiles(files);
+      setError(null);
+      setResult(null);
+    }
+  };
+
+  // 上传文件
+  const handleUpload = async () => {
+    if (!selectedFiles || selectedFiles.length === 0) {
+      setError('请至少选择一个文件');
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    const formData = new FormData();
+    // 注意：字段名必须是 'files'，与后端参数名一致
+    for (let i = 0; i < selectedFiles.length; i++) {
+      formData.append('files', selectedFiles[i]);
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/upload/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `上传失败: ${response.status}`);
+      }
+
+      const data: UploadResponse = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '上传失败，请稍后重试');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 重置所有状态
+  const handleReset = () => {
+    setSelectedFiles(null);
+    setResult(null);
+    setError(null);
+    // 清空 input 的值
+    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
+
+  return (
+    <div className="app-container">
+      <h1>📁 Excel 文件批量上传工具</h1>
+      
+      <div className="upload-section">
+        <div className="file-input-wrapper">
+          <label htmlFor="fileInput" className="file-label">
+            📂 选择 Excel 文件（支持多选）
+          </label>
+          <input
+            id="fileInput"
+            type="file"
+            accept=".xlsx,.xls"
+            multiple
+            onChange={handleFileChange}
+            disabled={uploading}
+          />
+        </div>
+        
+        {selectedFiles && (
+          <div className="file-list">
+            <strong>已选择 {selectedFiles.length} 个文件：</strong>
+            <ul>
+              {Array.from(selectedFiles).map((file, index) => (
+                <li key={index}>
+                  📄 {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        <div className="button-group">
+          <button 
+            onClick={handleUpload} 
+            disabled={!selectedFiles || selectedFiles.length === 0 || uploading}
+            className="btn btn-primary"
+          >
+            {uploading ? '⏳ 上传中...' : '🚀 上传并解析'}
+          </button>
+          <button onClick={handleReset} disabled={uploading} className="btn btn-secondary">
+            🔄 重置
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="error-message">
+          ❌ {error}
+        </div>
+      )}
+
+      {result && (
+        <div className="result-section">
+          <h2>✅ {result.message}</h2>
+          
+          {result.details.map((detail, idx) => (
+            <div key={idx} className="file-result">
+              <h3>📊 文件 {idx + 1}: {detail.filename}</h3>
+              <div className="stats">
+                <span>📏 总行数: {detail.rows}</span>
+                <span>📑 列名: {detail.columns.join(', ')}</span>
+              </div>
+              
+              {detail.sample && detail.sample.length > 0 && (
+                <div className="sample-data">
+                  <h4>📋 数据预览（前2行）</h4>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        {Object.keys(detail.sample[0]).map((key, i) => (
+                          <th key={i}>{key}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.sample.map((row, rowIdx) => (
+                        <tr key={rowIdx}>
+                          {Object.values(row).map((value, colIdx) => (
+                            <td key={colIdx}>{String(value)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
