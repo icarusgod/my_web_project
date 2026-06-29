@@ -1,97 +1,28 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from typing import List
-import pandas as pd
-from io import BytesIO
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, time, timedelta
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import Body, FastAPI
 
 app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React 默认端口
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
-
-import pandas as pd
-import numpy as np
-from io import BytesIO
-
-def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """清理 DataFrame，确保所有值可 JSON 序列化"""
-    # 1. 替换 NaN 为 None
-    df = df.where(pd.notnull(df), None)
-    
-    # 2. 处理无穷大值（Infinity）
-    df = df.replace([np.inf, -np.inf], None)
-    
-    # 3. 将 NumPy 类型转换为 Python 原生类型（可选）
-    for col in df.columns:
-        if df[col].dtype == 'float64':
-            # 保持 float，但确保没有 NaN/inf
-            pass
-        elif df[col].dtype == 'int64':
-            df[col] = df[col].astype('object')
-    
-    return df
-
-@app.post("/upload")
-async def upload_multiple_excel(files: List[UploadFile] = File(...)):
-    results = []
-    
-    for file in files:
-        # 验证文件类型
-        allowed_types = [
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.ms-excel"
-        ]
-        if file.content_type not in allowed_types:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"文件 {file.filename} 类型不支持，请上传 Excel 文件"
-            )
-        
-        # 读取文件
-        contents = await file.read()
-        
-        try:
-            df = pd.read_excel(BytesIO(contents))
-            
-            # 🔧 清理数据
-            df = clean_dataframe(df)
-            
-            # 处理示例数据（只取前2行）
-            sample_data = df.head(2000).to_dict(orient="records")
-            
-            # 进一步确保 sample_data 中所有 NaN 都已处理
-            for row in sample_data:
-                for key, value in list(row.items()):
-                    if value is None or (isinstance(value, float) and (np.isnan(value) or np.isinf(value))):
-                        row[key] = None
-                    # 转换 NumPy 类型为 Python 原生类型
-                    elif hasattr(value, 'item'):  # NumPy 类型
-                        row[key] = value.item()
-            
-            results.append({
-                "filename": file.filename,
-                "rows": len(df),
-                "columns": list(df.columns),
-                "sample": sample_data
-            })
-            
-        except Exception as e:
-            raise HTTPException(
-                status_code=400,
-                detail=f"解析文件 {file.filename} 失败: {str(e)}"
-            )
-    
-    return {"message": f"成功处理 {len(files)} 个文件", "details": results}
+@app.put("/items/{item_id}")
+async def read_items(
+    item_id: UUID,
+    start_datetime: Annotated[datetime, Body()],
+    end_datetime: Annotated[datetime, Body()],
+    process_after: Annotated[timedelta, Body()],
+    repeat_at: Annotated[time | None, Body()] = None,
+):
+    start_process = start_datetime + process_after
+    duration = end_datetime - start_process
+    return {
+        "item_id": item_id,
+        "start_datetime": start_datetime,
+        "end_datetime": end_datetime,
+        "process_after": process_after,
+        "repeat_at": repeat_at,
+        "start_process": start_process,
+        "duration": duration,
+    }
