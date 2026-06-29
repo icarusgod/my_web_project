@@ -85,7 +85,7 @@ const App: React.FC = () => {
       const options = (data.suggestions || []).map((v: string) => ({ label: v, value: v }));
       setSkuOptions(options);
       // 默认全选新选项
-      setSelectedSkus(options.map(o => o.value));
+      setSelectedSkus(options.map((o: { value: string }) => o.value));
     })();
   }, [selectedTable, debouncedSkuSearch]);
 
@@ -189,7 +189,7 @@ const App: React.FC = () => {
     if (isAllSelected) {
       setSelectedSkus([]);
     } else {
-      setSelectedSkus(skuOptions.map(o => o.value));
+      setSelectedSkus(skuOptions.map((o: { value: string }) => o.value));
     }
   };
 
