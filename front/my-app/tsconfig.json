@@ -7,6 +7,7 @@
   //--- IGNORE check ---
   //need delete after test
   "compilerOptions": {
+    "strict": false,
     "noImplicitAny": false
   }
 }
