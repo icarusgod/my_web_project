@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback} from "react";//useMemo, useRef
 import { Upload, Button, Select, Input, Table, Space, message, Typography, Checkbox, Divider } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
-
+const URLSerive:string="https://my-web-project-9a1c.onrender.com/docs"
+//const URLSerive:string="localhost:3000"
 const { Text } = Typography;
 
 interface TableRecord {
@@ -63,13 +64,13 @@ const App: React.FC = () => {
 
   // ==================== API 调用 ====================
   const fetchTables = async () => {
-    const res = await fetch("http://localhost:8000/tables");
+    const res = await fetch(URLSerive+"/tables");
     const data = await res.json();
     setTableNames(data.tables || []);
   };
 
   const fetchUomValues = async (table: string) => {
-    const res = await fetch(`http://localhost:8000/uom_values?table=${encodeURIComponent(table)}`);
+    const res = await fetch(URLSerive+`/uom_values?table=${encodeURIComponent(table)}`);
     const data = await res.json();
     setUomOptions(data.values || []);
   };
@@ -79,7 +80,7 @@ const App: React.FC = () => {
     if (!selectedTable) return;
     (async () => {
       const res = await fetch(
-        `http://localhost:8000/sku_suggestions?table=${encodeURIComponent(selectedTable)}&q=${encodeURIComponent(debouncedSkuSearch)}`
+        URLSerive+`/sku_suggestions?table=${encodeURIComponent(selectedTable)}&q=${encodeURIComponent(debouncedSkuSearch)}`
       );
       const data = await res.json();
       const options = (data.suggestions || []).map((v: string) => ({ label: v, value: v }));
@@ -94,7 +95,7 @@ const App: React.FC = () => {
     if (!selectedTable) return;
     (async () => {
       const res = await fetch(
-        `http://localhost:8000/customer_suggestions?table=${encodeURIComponent(selectedTable)}&q=${encodeURIComponent(debouncedCustomerSearch)}`
+        URLSerive+`/customer_suggestions?table=${encodeURIComponent(selectedTable)}&q=${encodeURIComponent(debouncedCustomerSearch)}`
       );
       const data = await res.json();
       setCustomerOptions((data.suggestions || []).map((v: string) => ({ label: v, value: v })));
@@ -117,7 +118,7 @@ const App: React.FC = () => {
         dCustomers.forEach((c: string) => params.append("customer", c));
         dUoms.forEach((u: string) => params.append("uom", u));
 
-        const res = await fetch(`http://localhost:8000/query?${params.toString()}`);
+        const res = await fetch(URLSerive+`/query?${params.toString()}`);
         const result = await res.json();
         if (result.data) {
           setDataSource(result.data);
@@ -172,7 +173,7 @@ const App: React.FC = () => {
         const json = XLSX.utils.sheet_to_json<TableRecord>(sheet, { defval: "", raw: false });
         if (json.length > 0) tables.push({ name: `${file.name}-${sheetName}`, data: json });
       });
-      await fetch("http://localhost:8000/upload", {
+      await fetch(URLSerive+"/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tables }),
