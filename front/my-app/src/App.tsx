@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback} from "react";//useMemo, useRef
 import { Upload, Button, Select, Input, Table, Space, message, Typography, Checkbox, Divider } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
-const URLSerive:string="https://my-web-project-9a1c.onrender.com/docs"
+const URLSerive:string="https://my-web-project-9a1c.onrender.com/"
 //const URLSerive:string="localhost:3000"
 const { Text } = Typography;
 
